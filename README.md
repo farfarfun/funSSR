@@ -1,5 +1,8 @@
 # darkSSR
 
+[github](https://github.com/darkchats/darkSSR)
+
+[gitee](https://gitee.com/notechats/darkSSR)
 
 
 # 安装 SSR-服务端
