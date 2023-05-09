@@ -23,11 +23,11 @@ yum -y install wget
 
 # 安装 SSR-客户端
 
-
-https://github.com/darkchats/darkSSR/tree/master/darkssr/client
-
-
-
+|平台|名称|github下载|gitee下载|
+|:-:|:-:|:-:|:-:|
+|Android|shadowsocksr-android-3.5.4.apk|[github](https://raw.githubusercontent.com/darkchats/darkSSR/master/darkssr/client/shadowsocksr-android-3.5.4.apk)||[gitee](https://gitee.com/notechats/darkSSR/raw/master/darkssr/client/shadowsocksr-android-3.5.4.apk)|
+|Mac|ShadowsocksX-NG-R8.dmg|[github](https://raw.githubusercontent.com/darkchats/darkSSR/master/darkssr/client/ShadowsocksX-NG-R8.dmg)||[gitee](https://gitee.com/notechats/darkSSR/raw/master/darkssr/client/ShadowsocksX-NG-R8.dmg)|
+|Windows|ShadowsocksR-win-4.9.2-tlanyan.zip|[github](https://raw.githubusercontent.com/darkchats/darkSSR/master/darkssr/client/ShadowsocksR-win-4.9.2-tlanyan.zip)||[gitee](https://gitee.com/notechats/darkSSR/raw/master/darkssr/client/ShadowsocksR-win-4.9.2-tlanyan.zip)|
 
 
 # 感谢
