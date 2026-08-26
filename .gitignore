@@ -1,0 +1,30 @@
+
+# ---- farfarfun 组织约定 (SPEC §10) ----
+# 服务脚本的运行时文件：日志 / PID / lock
+.run/
+logs/
+*.log
+
+# 本地数据库与压缩包不进版本管理，确需版本化走 Git LFS
+*.db
+*.sqlite
+*.sqlite3
+*.rar
+*.7z
+
+# 构建产物（无前导斜杠，任意层级都匹配，含 utools/dist/）
+dist/
+build/
+
+# 编辑器 / IDE
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# 凭据：绝不提交
+.env
+.env.*
+!.env.example
+*.pem
+*.key
