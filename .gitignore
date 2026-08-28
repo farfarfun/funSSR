@@ -15,6 +15,10 @@ logs/
 dist/
 build/
 
+# 浏览器重复下载产生的文件名（如 "xxx (1).zip"）—— 典型的误 git add 产物，
+# 见 darkssr/client/ 下正经的客户端安装包命名（无括号），不要放宽到匹配所有 *.zip
+* (*)*
+
 # 编辑器 / IDE
 .idea/
 .vscode/
