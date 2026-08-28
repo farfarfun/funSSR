@@ -2,7 +2,7 @@
 
 [github](https://github.com/fundata/funSSR)
 
-[gitee](https://gitee.com/notechats/funSSR)
+[gitee](https://gitee.com/farfarfun/funSSR)
 
 # 安装 SSR-服务端
 
@@ -27,9 +27,9 @@ yum -y install wget
 
 |  平台   |                名称                |                                                     github 下载                                                      |                                                gitee 下载                                                 |
 | :-----: | :--------------------------------: | :------------------------------------------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------------------------: |
-| Android |   shadowsocksr-android-3.5.4.apk   |   [github](https://raw.githubusercontent.com/fundata/funSSR/master/funSSR/client/shadowsocksr-android-3.5.4.apk)   |   [gitee](https://gitee.com/notechats/funSSR/raw/master/funSSR/client/shadowsocksr-android-3.5.4.apk)   |
-|   Mac   |       ShadowsocksX-NG-R8.dmg       |       [github](https://raw.githubusercontent.com/fundata/funSSR/master/funSSR/client/ShadowsocksX-NG-R8.dmg)       |       [gitee](https://gitee.com/notechats/funSSR/raw/master/funSSR/client/ShadowsocksX-NG-R8.dmg)       |
-| Windows | ShadowsocksR-win-4.9.2-tlanyan.zip | [github](https://raw.githubusercontent.com/fundata/funSSR/master/funSSR/client/ShadowsocksR-win-4.9.2-tlanyan.zip) | [gitee](https://gitee.com/notechats/funSSR/raw/master/funSSR/client/ShadowsocksR-win-4.9.2-tlanyan.zip) |
+| Android |   shadowsocksr-android-3.5.4.apk   |   [github](https://raw.githubusercontent.com/fundata/funSSR/master/funSSR/client/shadowsocksr-android-3.5.4.apk)   |   [gitee](https://gitee.com/farfarfun/funSSR/raw/master/darkssr/client/shadowsocksr-android-3.5.4.apk)   |
+|   Mac   |       ShadowsocksX-NG-R8.dmg       |       [github](https://raw.githubusercontent.com/fundata/funSSR/master/funSSR/client/ShadowsocksX-NG-R8.dmg)       |       [gitee](https://gitee.com/farfarfun/funSSR/raw/master/darkssr/client/ShadowsocksX-NG-R8.dmg)       |
+| Windows | ShadowsocksR-win-4.9.2-tlanyan.zip | [github](https://raw.githubusercontent.com/fundata/funSSR/master/funSSR/client/ShadowsocksR-win-4.9.2-tlanyan.zip) | [gitee](https://gitee.com/farfarfun/funSSR/raw/master/darkssr/client/ShadowsocksR-win-4.9.2-tlanyan.zip) |
 
 # 感谢
 
