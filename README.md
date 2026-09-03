@@ -33,6 +33,18 @@ yum -y install wget
 
 # 感谢
 
+本仓库 `darkssr/` 下的安装/管理脚本移植自以下第三方项目，遵循其原始开源协议，保留原始版权声明：
+
 [luyiming1016/ladderbackup](https://github.com/luyiming1016/ladderbackup)
 
 [ToyoDAdoubi/doubi](https://github.com/ToyoDAdoubi/doubi)
+
+## 关于 farfarfun
+
+[farfarfun](https://github.com/farfarfun) 是一个专注于实用工具库的开源组织，
+涵盖云存储、数据处理、AI、多媒体与开发工具链等方向。
+
+- 🏠 组织主页：<https://github.com/farfarfun>
+- 📧 联系：farfarfun@qq.com
+
+本项目基于 [MIT](LICENSE) 协议开源。
