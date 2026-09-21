@@ -18,7 +18,9 @@ ssr_ss_file="${ssr_folder}/shadowsocks"
 config_file="${ssr_folder}/config.json"
 config_folder="/etc/shadowsocksr"
 config_user_file="${config_folder}/user-config.json"
-ssr_log_file="${ssr_ss_file}/ssserver.log"
+runtime_dir="${FUNSSR_RUN_DIR:-${filepath}/.run}"
+mkdir -p "${runtime_dir}"
+ssr_log_file="${runtime_dir}/ssr.log"
 Libsodiumr_file="/usr/local/lib/libsodium.so"
 Libsodiumr_ver_backup="1.0.13"
 Server_Speeder_file="/serverspeeder/bin/serverSpeeder.sh"
@@ -264,9 +266,12 @@ Set_config_port(){
 }
 Set_config_password(){
 	echo "请输入要设置的ShadowsocksR账号 密码"
-	read -e -p "(默认: doub.io):" ssr_password
-	[[ -z "${ssr_password}" ]] && ssr_password="doub.io"
-	echo && echo ${Separator_1} && echo -e "	密码 : ${Green_font_prefix}${ssr_password}${Font_color_suffix}" && echo ${Separator_1} && echo
+	read -e -r -s -p "(留空则随机生成):" ssr_password
+	echo
+	if [[ -z "${ssr_password}" ]]; then
+		ssr_password=$(openssl rand -hex 16 2>/dev/null) || ssr_password=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+	fi
+	echo && echo ${Separator_1} && echo -e "	密码已设置" && echo ${Separator_1} && echo
 }
 Set_config_method(){
 	echo -e "请选择要设置的ShadowsocksR账号 加密方式
@@ -1175,9 +1180,9 @@ Restart_SSR(){
 }
 View_Log(){
 	SSR_installation_status
-	[[ ! -e ${ssr_log_file} ]] && echo -e "${Error} ShadowsocksR日志文件不存在 !" && exit 1
+	[[ ! -e "${ssr_log_file}" ]] && echo -e "${Error} ShadowsocksR日志文件不存在 !" && exit 1
 	echo && echo -e "${Tip} 按 ${Red_font_prefix}Ctrl+C${Font_color_suffix} 终止查看日志" && echo -e "如果需要查看完整日志内容，请用 ${Red_font_prefix}cat ${ssr_log_file}${Font_color_suffix} 命令。" && echo
-	tail -f ${ssr_log_file}
+	tail -f "${ssr_log_file}"
 }
 # 锐速
 Configure_Server_Speeder(){

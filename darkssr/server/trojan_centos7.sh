@@ -23,13 +23,13 @@ if [ ! -e '/etc/redhat-release' ]; then
 red "==============="
 red " 仅支持CentOS7"
 red "==============="
-exit
+exit 1
 fi
 if  [ -n "$(grep ' 6\.' /etc/redhat-release)" ] ;then
 red "==============="
 red " 仅支持CentOS7"
 red "==============="
-exit
+exit 1
 fi
 
 function install_trojan(){
@@ -174,7 +174,7 @@ After=network.target
    
 [Service]  
 Type=simple  
-PIDFile=/usr/src/trojan/trojan/trojan.pid
+PIDFile=.run/trojan.pid
 ExecStart=/usr/src/trojan/trojan -c "/usr/src/trojan/server.conf"  
 ExecReload=  
 ExecStop=/usr/src/trojan/trojan  

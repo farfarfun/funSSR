@@ -2,11 +2,11 @@
 #判断系统
 if [ ! -e '/etc/redhat-release' ]; then
 echo "仅支持centos7"
-exit
+exit 1
 fi
 if  [ -n "$(grep ' 6\.' /etc/redhat-release)" ] ;then
 echo "仅支持centos7"
-exit
+exit 1
 fi
 CHECK=$(grep SELINUX= /etc/selinux/config | grep -v "#")
 if [ "$CHECK" == "SELINUX=enforcing" ]; then
@@ -124,7 +124,7 @@ server {
     ssl_stapling on;
     ssl_stapling_verify on;
     #add_header Strict-Transport-Security "max-age=31536000";
-    #access_log /var/log/nginx/access.log combined;
+    #access_log .run/nginx-access.log combined;
     location /mypath {
         proxy_redirect off;
         proxy_pass http://127.0.0.1:11234; 

@@ -19,25 +19,39 @@ bash: wget: command not found
 的话，就先执行下面的再执行第一步的命令
 
 yum -y install wget
-然后就进入了 ssrmu.sh 脚本了，脚本有很多功能，小白的我们就一路回车就好了 注意这里，其他可以一路回车，选端口强烈建议换一个端口，建议将默认的 2333 换为 1000065535 间的 1000011000 之间的一个随机端口，最近 2333 端口被封的厉害
+然后就进入了 ssrmu.sh 脚本了。端口必须在 `1-65535` 范围内，建议使用未占用的高位端口，例如 `10001`；密码留空时脚本会安全随机生成，不要使用公开示例密码。
 
 最后会出现配置完成的画面，复制好提示出现的 ssr 链接复制保存在剪贴板里，之后就要安装 ssr 客户端了。
 
 # 安装 SSR-客户端
 
+客户端安装包不再直接提交到本仓库。请从对应上游项目的正式发布页下载并校验发布者提供的校验值；本项目只维护服务端脚本。
+
 |  平台   |                名称                |                                                     github 下载                                                      |                                                gitee 下载                                                 |
 | :-----: | :--------------------------------: | :------------------------------------------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------------------------: |
-| Android |   shadowsocksr-android-3.5.4.apk   |   [github](https://raw.githubusercontent.com/farfarfun/funSSR/master/darkssr/client/shadowsocksr-android-3.5.4.apk)   |   [gitee](https://gitee.com/farfarfun/funSSR/raw/master/darkssr/client/shadowsocksr-android-3.5.4.apk)   |
-|   Mac   |       ShadowsocksX-NG-R8.dmg       |       [github](https://raw.githubusercontent.com/farfarfun/funSSR/master/darkssr/client/ShadowsocksX-NG-R8.dmg)       |       [gitee](https://gitee.com/farfarfun/funSSR/raw/master/darkssr/client/ShadowsocksX-NG-R8.dmg)       |
-| Windows | ShadowsocksR-win-4.9.2-tlanyan.zip | [github](https://raw.githubusercontent.com/farfarfun/funSSR/master/darkssr/client/ShadowsocksR-win-4.9.2-tlanyan.zip) | [gitee](https://gitee.com/farfarfun/funSSR/raw/master/darkssr/client/ShadowsocksR-win-4.9.2-tlanyan.zip) |
+| Android | ShadowsocksR Android | [上游 releases](https://github.com/shadowsocksrr/shadowsocksr-android/releases) | - |
+| Mac | ShadowsocksX-NG | [上游 releases](https://github.com/shadowsocks/ShadowsocksX-NG/releases) | - |
+| Windows | ShadowsocksR Windows | [上游 releases](https://github.com/shadowsocksrr/shadowsocksr-csharp/releases) | - |
 
 # 感谢
 
-本仓库 `darkssr/` 下的安装/管理脚本移植自以下第三方项目，遵循其原始开源协议，保留原始版权声明：
+本仓库 `darkssr/` 下的安装/管理脚本移植自以下第三方项目。本项目保留上游版权声明；修改后的代码继续以本仓库 LICENSE 发布。`doubi` 明确采用 MIT License，`ladderbackup` 当前上游仓库未提供 LICENSE 文件，因此其许可证状态为未声明，使用者应按上游项目说明核实：
 
-[luyiming1016/ladderbackup](https://github.com/luyiming1016/ladderbackup)
+[luyiming1016/ladderbackup](https://github.com/luyiming1016/ladderbackup)（许可证未声明，原始来源归 luyiming1016）
 
-[ToyoDAdoubi/doubi](https://github.com/ToyoDAdoubi/doubi)
+[ToyoDAdoubi/doubi](https://github.com/ToyoDAdoubi/doubi)（MIT License，原始版权归 ToyoDAdoubi）
+
+## 运行服务
+
+统一入口要求显式指定环境：
+
+```bash
+scripts/setup.sh run dev ssrmu       # 前台运行仓库脚本
+scripts/setup.sh start prod ssrmu    # 启动已安装的生产服务
+scripts/setup.sh status prod ssrmu
+```
+
+服务日志和其他运行时文件放在仓库 `.run/` 目录；可通过 `FUNSSR_RUN_DIR` 指定独立目录。
 
 ## 关于 farfarfun
 
