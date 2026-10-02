@@ -21,6 +21,7 @@ config_user_mudb_file="${ssr_folder}/mudb.json"
 runtime_dir="${FUNSSR_RUN_DIR:-${filepath}/.run}"
 mkdir -p "${runtime_dir}"
 ssr_log_file="${runtime_dir}/ssrmu.log"
+ssr_pid_file="${runtime_dir}/ssrmu.pid"
 Libsodiumr_file="/usr/local/lib/libsodium.so"
 Libsodiumr_ver_backup="1.0.15"
 Server_Speeder_file="/serverspeeder/bin/serverSpeeder.sh"
@@ -56,7 +57,30 @@ check_sys(){
 	bit=`uname -m`
 }
 check_pid(){
-	PID=`ps -ef |grep -v grep | grep server.py |awk '{print $2}'`
+	PID=""
+	[[ -r "${ssr_pid_file}" ]] || return 0
+	read -r PID < "${ssr_pid_file}" || { rm -f "${ssr_pid_file}"; return 0; }
+	if [[ ! "${PID}" =~ ^[0-9]+$ ]] || ! kill -0 "${PID}" 2>/dev/null; then
+		rm -f "${ssr_pid_file}"
+		PID=""
+		return 0
+	fi
+	cmdline=$(tr '\0' ' ' < "/proc/${PID}/cmdline" 2>/dev/null || true)
+	if [[ "${cmdline}" != *"${ssr_folder}"* || "${cmdline}" != *"server.py"* ]]; then
+		rm -f "${ssr_pid_file}"
+		PID=""
+	fi
+}
+record_pid(){
+	local proc candidate_cmd candidate_pid
+	local -a candidates=()
+	for proc in /proc/[0-9]*; do
+		candidate_pid=${proc##*/}
+		candidate_cmd=$(tr '\0' ' ' < "${proc}/cmdline" 2>/dev/null || true)
+		[[ "${candidate_cmd}" == *"${ssr_folder}/server.py"* ]] && candidates+=("${candidate_pid}")
+	done
+	[[ ${#candidates[@]} -eq 1 ]] || return 1
+	printf '%s\n' "${candidates[0]}" > "${ssr_pid_file}"
 }
 check_crontab(){
 	[[ ! -e "/usr/bin/crontab" ]] && echo -e "${Error} 缺少依赖 Crontab ，请尝试手动安装 CentOS: yum install crond -y , Debian/Ubuntu: apt-get install cron -y !" && exit 1
@@ -1442,18 +1466,21 @@ Start_SSR(){
 	check_pid
 	[[ ! -z ${PID} ]] && echo -e "${Error} ShadowsocksR 正在运行 !" && exit 1
 	/etc/init.d/ssrmu start
+	record_pid || { echo -e "${Error} 无法确认 ShadowsocksR 进程身份 !"; exit 1; }
 }
 Stop_SSR(){
 	SSR_installation_status
 	check_pid
 	[[ -z ${PID} ]] && echo -e "${Error} ShadowsocksR 未运行 !" && exit 1
 	/etc/init.d/ssrmu stop
+	rm -f "${ssr_pid_file}"
 }
 Restart_SSR(){
 	SSR_installation_status
 	check_pid
 	[[ ! -z ${PID} ]] && /etc/init.d/ssrmu stop
 	/etc/init.d/ssrmu start
+	record_pid || { echo -e "${Error} 无法确认 ShadowsocksR 进程身份 !"; exit 1; }
 }
 View_Log(){
 	SSR_installation_status
@@ -1774,14 +1801,24 @@ crontab_monitor_ssr_cron_stop(){
 	fi
 }
 Update_Shell(){
-	sh_new_ver=$(wget --no-check-certificate -qO- -t1 -T3 "https://raw.githubusercontent.com/ToyoDAdoubi/doubi/master/ssrmu.sh"|grep 'sh_ver="'|awk -F "=" '{print $NF}'|sed 's/\"//g'|head -1) && sh_new_type="github"
-	[[ -z ${sh_new_ver} ]] && echo -e "${Error} 无法链接到 Github !" && exit 0
+	update_file=$(mktemp) || { echo -e "${Error} 无法创建更新临时文件 !"; exit 1; }
+	if ! wget --no-check-certificate -q -t1 -T3 "https://raw.githubusercontent.com/ToyoDAdoubi/doubi/master/ssrmu.sh" -O "${update_file}"; then
+		rm -f "${update_file}"
+		echo -e "${Error} 无法链接到 Github !"
+		exit 1
+	fi
+	sh_new_ver=$(grep 'sh_ver="' "${update_file}" | awk -F "=" '{print $NF}' | sed 's/\"//g' | head -1)
+	rm -f "${update_file}"
+	[[ -n ${sh_new_ver} ]] || { echo -e "${Error} 无法读取更新版本 !"; exit 1; }
 	if [[ -e "/etc/init.d/ssrmu" ]]; then
 		rm -rf /etc/init.d/ssrmu
 		Service_SSR
 	fi
 	cd "${file}"
-	wget -N --no-check-certificate "https://raw.githubusercontent.com/ToyoDAdoubi/doubi/master/ssrmu.sh" && chmod +x ssrmu.sh
+	if ! wget -N --no-check-certificate "https://raw.githubusercontent.com/ToyoDAdoubi/doubi/master/ssrmu.sh" || ! chmod +x ssrmu.sh; then
+		echo -e "${Error} 脚本更新失败 !"
+		exit 1
+	fi
 	echo -e "脚本已更新为最新版本[ ${sh_new_ver} ] !(注意：因为更新方式为直接覆盖当前运行的脚本，所以可能下面会提示一些报错，无视即可)" && exit 0
 }
 # 显示 菜单状态

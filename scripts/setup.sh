@@ -2,44 +2,61 @@
 set -Eeuo pipefail
 
 root_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-run_dir="${FUNSSR_RUN_DIR:-${root_dir}/.run}"
 
 usage() {
 	cat <<'EOF'
-用法: scripts/setup.sh {start|stop|restart|run|status} {dev|prod} [ssr|ssrmu|trojan|v2ray]
-dev 使用仓库脚本直接运行，prod 使用已安装的 systemd/init 服务。
+用法:
+  scripts/setup.sh {start|stop|restart|run} {ssr|ssrmu|trojan|v2ray} {dev|prod}
+  scripts/setup.sh status [ssr|ssrmu|trojan|v2ray] [dev|prod]
+
+参数顺序为 action、service、environment。未指定参数的 status 会汇总所有服务和环境。
 EOF
 }
 
-[[ $# -ge 2 && $# -le 3 ]] || { usage >&2; exit 2; }
+services=(ssr ssrmu trojan v2ray)
+valid_service() {
+	local candidate=$1 service
+	for service in "${services[@]}"; do
+		[[ "$candidate" == "$service" ]] && return 0
+	done
+	return 1
+}
+
+dispatch() {
+	local action=$1 service=$2 environment=$3
+	export FUNSSR_RUN_DIR="${FUNSSR_RUN_DIR:-${root_dir}/.run}"
+	mkdir -p "$FUNSSR_RUN_DIR"
+	exec bash "$root_dir/scripts/services/${service}.sh" "$action" "$environment"
+}
+
+[[ $# -ge 1 && $# -le 3 ]] || { usage >&2; exit 2; }
 action=$1
-mode=$2
-service=${3:-ssrmu}
-[[ "$mode" == dev || "$mode" == prod ]] || { echo "环境必须是 dev 或 prod" >&2; exit 2; }
-case "$service" in
-	ssr) script="$root_dir/darkssr/server/ssr.sh"; unit=ssr ;;
-	ssrmu) script="$root_dir/darkssr/server/ssrmu.sh"; unit=ssrmu ;;
-	trojan) script="$root_dir/darkssr/server/trojan_centos7.sh"; unit=trojan ;;
-	v2ray) script="$root_dir/darkssr/server/v2ray_ws_tls.sh"; unit=v2ray ;;
-	*) echo "不支持的服务: $service" >&2; exit 2 ;;
-esac
 
-mkdir -p "$run_dir"
-export FUNSSR_RUN_DIR="$run_dir"
+if [[ "$action" == status ]]; then
+	if [[ $# -ge 2 ]] && ! valid_service "$2"; then
+		echo "不支持的服务: $2" >&2
+		exit 2
+	fi
+	if [[ $# -eq 3 && "$3" != dev && "$3" != prod ]]; then
+		echo "环境必须是 dev 或 prod" >&2
+		exit 2
+	fi
+	selected_services=("${2:-${services[@]}}")
+	selected_environments=("${3:-dev prod}")
+	result=0
+	for service in "${selected_services[@]}"; do
+		for environment in "${selected_environments[@]}"; do
+			echo "== ${service} (${environment}) =="
+			if ! bash "$root_dir/scripts/services/${service}.sh" status "$environment"; then
+				result=1
+			fi
+		done
+	done
+	exit "$result"
+fi
 
-case "$action" in
-	run)
-		[[ "$mode" == dev ]] || { echo "run 仅用于 dev；prod 请使用 start" >&2; exit 2; }
-		exec bash "$script"
-		;;
-	start|stop|restart|status)
-		if [[ "$mode" == prod ]]; then
-			command -v systemctl >/dev/null 2>&1 || { echo "prod 需要 systemctl" >&2; exit 1; }
-			exec systemctl "$action" "$unit"
-		fi
-		init="/etc/init.d/$unit"
-		[[ -x "$init" ]] || { echo "dev 服务尚未安装: $init" >&2; exit 1; }
-		exec "$init" "$action"
-		;;
-	*) usage >&2; exit 2 ;;
-esac
+[[ $# -eq 3 ]] || { usage >&2; exit 2; }
+case "$action" in start|stop|restart|run) ;; *) usage >&2; exit 2 ;; esac
+valid_service "$2" || { echo "不支持的服务: $2" >&2; exit 2; }
+[[ "$3" == dev || "$3" == prod ]] || { echo "环境必须是 dev 或 prod" >&2; exit 2; }
+dispatch "$action" "$2" "$3"

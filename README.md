@@ -43,12 +43,14 @@ yum -y install wget
 
 ## 运行服务
 
-统一入口要求显式指定环境：
+统一入口按 `action service environment` 指定环境：
 
 ```bash
-scripts/setup.sh run dev ssrmu       # 前台运行仓库脚本
-scripts/setup.sh start prod ssrmu    # 启动已安装的生产服务
-scripts/setup.sh status prod ssrmu
+scripts/setup.sh run ssrmu dev       # 前台运行仓库脚本
+scripts/setup.sh start ssrmu prod    # 启动已安装的生产服务
+scripts/setup.sh run ssrmu prod      # 运行已安装的生产服务
+scripts/setup.sh status ssrmu prod
+scripts/setup.sh status              # 非交互汇总全部服务和环境
 ```
 
 服务日志和其他运行时文件放在仓库 `.run/` 目录；可通过 `FUNSSR_RUN_DIR` 指定独立目录。

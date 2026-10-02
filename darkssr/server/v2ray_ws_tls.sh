@@ -148,7 +148,7 @@ install_v2ray(){
     rm -f config.json
     wget https://raw.githubusercontent.com/luyiming1016/ladderbackup/master/config.json
     v2uuid=$(cat /proc/sys/kernel/random/uuid)
-    sed -i "s/aaaa/$v2uuid/;" config.json
+    sed -i -E "s/(\"id\"[[:space:]]*:[[:space:]]*\")[^\"]*(\")/\\1$v2uuid\\2/" config.json
     newpath=$(cat /dev/urandom | head -1 | md5sum | head -c 4)
     sed -i "s/mypath/$newpath/;" config.json
     sed -i "s/mypath/$newpath/;" /etc/nginx/conf.d/default.conf

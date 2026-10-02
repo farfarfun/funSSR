@@ -11,10 +11,10 @@
     "settings": {
       "clients": [
         {
-          "id": "aaaa",
+          "id": "REPLACE_WITH_A_UNIQUE_UUID",
           "level": 1,
           "alterId": 64,
-	  "email": "akcp1234@gmail.com"
+	  "email": "client"
         }
       ]
     },
