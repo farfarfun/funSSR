@@ -14,6 +14,7 @@ EOF
 }
 
 services=(ssr ssrmu trojan v2ray)
+environments=(dev prod)
 valid_service() {
 	local candidate=$1 service
 	for service in "${services[@]}"; do
@@ -42,7 +43,7 @@ if [[ "$action" == status ]]; then
 		exit 2
 	fi
 	selected_services=("${2:-${services[@]}}")
-	selected_environments=("${3:-dev prod}")
+	selected_environments=("${3:-${environments[@]}}")
 	result=0
 	for service in "${selected_services[@]}"; do
 		for environment in "${selected_environments[@]}"; do
