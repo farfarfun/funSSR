@@ -35,7 +35,7 @@ yum -y install wget
 
 # 感谢
 
-本仓库 `darkssr/` 下的安装/管理脚本移植自以下第三方项目。本项目保留上游版权声明；修改后的代码继续以本仓库 LICENSE 发布。`doubi` 明确采用 MIT License，`ladderbackup` 当前上游仓库未提供 LICENSE 文件，因此其许可证状态为未声明，使用者应按上游项目说明核实：
+本仓库 `darkssr/` 下的安装/管理脚本移植自以下第三方项目，本项目保留上游版权声明。其中 `doubi` 明确采用 MIT License，移植并修改自它的代码（`ssr.sh`、`ssrmu.sh`）按本仓库 LICENSE 发布；`ladderbackup` 当前上游仓库未提供 LICENSE 文件，许可证状态为未声明，其移植代码（`v2ray_ws_tls.sh`）**不**纳入本仓库 MIT 授权，继续沿用上游未声明许可证的状态，使用者应自行核实并承担相应风险：
 
 [luyiming1016/ladderbackup](https://github.com/luyiming1016/ladderbackup)（许可证未声明，原始来源归 luyiming1016）
 
@@ -46,14 +46,30 @@ yum -y install wget
 统一入口按 `action service environment` 指定环境：
 
 ```bash
-scripts/setup.sh run ssrmu dev       # 前台运行仓库脚本
-scripts/setup.sh start ssrmu prod    # 启动已安装的生产服务
-scripts/setup.sh run ssrmu prod      # 运行已安装的生产服务
-scripts/setup.sh status ssrmu prod
-scripts/setup.sh status              # 非交互汇总全部服务和环境
+scripts/setup.sh run ssrmu dev       # 前台运行仓库安装/管理脚本（交互式菜单）
+scripts/setup.sh start ssrmu prod    # 启动已安装的生产服务（systemctl start，后台）
+scripts/setup.sh run ssrmu prod      # 仅校验已安装后 systemctl start；已知限制见下
+scripts/setup.sh status ssrmu prod   # 单一目标：原样返回底层真实退出码
+scripts/setup.sh status              # 非交互汇总全部服务和环境，退出码归一为 0/1
 ```
 
-服务日志和其他运行时文件放在仓库 `.run/` 目录；可通过 `FUNSSR_RUN_DIR` 指定独立目录。
+已知限制：`run prod` 目前与 `start prod` 效果相同（仍是 `systemctl start`，不是真正前台
+附着主进程），因为 `ssr`/`ssrmu` 走 SysV `/etc/init.d` 而 `trojan`/`v2ray` 走 systemd，
+通用地从已安装单元反推出可安全前台重放的启动命令（含环境变量、工作目录等）成本和风险
+都较高，暂缓实现，详见 todo-list#785。
+
+服务日志和其他运行时文件放在仓库 `.run/` 目录；可通过 `FUNSSR_RUN_DIR` 指定独立目录；
+`dev` 环境下 `/etc/init.d` 的查找路径可通过 `FUNSSR_INIT_DIR` 覆盖（供测试用 mock 注入）。
+
+## 测试
+
+```bash
+bash tests/smoke_test.sh
+```
+
+冒烟测试覆盖参数校验、`status` 默认汇总与单目标透传退出码、dev 环境 start/stop/restart/run
+（含 PID 文件写入与陈旧 PID 清理）、prod 环境已安装/未安装分支；全部通过 mock 的
+`systemctl`/`init.d` 脚本执行，不依赖真实服务或 root 权限。
 
 ## 关于 farfarfun
 

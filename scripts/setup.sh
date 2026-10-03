@@ -44,6 +44,11 @@ if [[ "$action" == status ]]; then
 	fi
 	selected_services=("${2:-${services[@]}}")
 	selected_environments=("${3:-${environments[@]}}")
+	if [[ ${#selected_services[@]} -eq 1 && ${#selected_environments[@]} -eq 1 ]]; then
+		# 单一明确目标：原样透传真实退出码（例如区分"未运行"与"未知"），
+		# 不汇总成 0/1，供脚本化调用判断具体状态。
+		exec bash "$root_dir/scripts/services/${selected_services[0]}.sh" status "${selected_environments[0]}"
+	fi
 	result=0
 	for service in "${selected_services[@]}"; do
 		for environment in "${selected_environments[@]}"; do
