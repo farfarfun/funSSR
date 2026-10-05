@@ -1,4 +1,10 @@
 #!/bin/bash
+set -Eeuo pipefail
+
+TROJAN_CLIENT_LOCAL_PORT=1080
+TROJAN_TLS_PORT=443
+NGINX_HTTP_PORT=80
+MYSQL_PORT=3306
 
 blue(){
     echo -e "\033[34m\033[01m$1\033[0m"
@@ -51,7 +57,7 @@ green "======================="
 read your_domain
 real_addr=`ping ${your_domain} -c 1 | sed '1{s/[^(]*(//;s/).*//;q}'`
 local_addr=`curl ipv4.icanhazip.com`
-if [ $real_addr == $local_addr ] ; then
+if [[ "$real_addr" == "$local_addr" ]] ; then
 	green "=========================================="
 	green "域名解析正常，开启安装nginx并申请https证书"
 	green "=========================================="
@@ -82,14 +88,14 @@ if [ $real_addr == $local_addr ] ; then
 	wget https://github.com/atrandys/trojan/raw/master/trojan-cli.zip
 	unzip trojan-cli.zip
 	cp /usr/src/trojan-cert/fullchain.cer /usr/src/trojan-cli/fullchain.cer
-	trojan_passwd=$(cat /dev/urandom | head -1 | md5sum | head -c 8)
+	trojan_passwd=$(head -c 32 /dev/urandom | md5sum | cut -c1-8)
 	cat > /usr/src/trojan-cli/config.json <<-EOF
 {
     "run_type": "client",
     "local_addr": "127.0.0.1",
-    "local_port": 1080,
+    "local_port": ${TROJAN_CLIENT_LOCAL_PORT},
     "remote_addr": "$your_domain",
-    "remote_port": 443,
+    "remote_port": ${TROJAN_TLS_PORT},
     "password": [
         "$trojan_passwd"
     ],
@@ -121,9 +127,9 @@ EOF
 {
     "run_type": "server",
     "local_addr": "0.0.0.0",
-    "local_port": 443,
+    "local_port": ${TROJAN_TLS_PORT},
     "remote_addr": "127.0.0.1",
-    "remote_port": 80,
+    "remote_port": ${NGINX_HTTP_PORT},
     "password": [
         "$trojan_passwd"
     ],
@@ -153,7 +159,7 @@ EOF
     "mysql": {
         "enabled": false,
         "server_addr": "127.0.0.1",
-        "server_port": 3306,
+        "server_port": ${MYSQL_PORT},
         "database": "trojan",
         "username": "trojan",
         "password": ""
@@ -162,7 +168,7 @@ EOF
 EOF
 	cd /usr/src/trojan-cli/
 	zip -q -r trojan-cli.zip /usr/src/trojan-cli/
-	trojan_path=$(cat /dev/urandom | head -1 | md5sum | head -c 16)
+	trojan_path=$(head -c 32 /dev/urandom | md5sum | cut -c1-16)
 	mkdir /usr/share/nginx/html/${trojan_path}
 	mv /usr/src/trojan-cli/trojan-cli.zip /usr/share/nginx/html/${trojan_path}/
 	#增加启动脚本

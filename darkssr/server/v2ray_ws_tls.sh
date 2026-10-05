@@ -1,4 +1,10 @@
 #!/bin/bash
+set -Eeuo pipefail
+
+NGINX_HTTP_PORT=80
+V2RAY_TLS_PORT=443
+V2RAY_LOCAL_PORT=11234
+
 #判断系统
 if [ ! -e '/etc/redhat-release' ]; then
 echo "仅支持centos7"
@@ -18,16 +24,16 @@ if [ "$CHECK" == "SELINUX=permissive" ]; then
     setenforce 0
 fi
 function blue(){
-    echo -e "\033[34m\033[01m $1 \033[0m"
+    echo -e "\033[34m\033[01m ${1:-} \033[0m"
 }
 function green(){
-    echo -e "\033[32m\033[01m $1 \033[0m"
+    echo -e "\033[32m\033[01m ${1:-} \033[0m"
 }
 function red(){
-    echo -e "\033[31m\033[01m $1 \033[0m"
+    echo -e "\033[31m\033[01m ${1:-} \033[0m"
 }
 function yellow(){
-    echo -e "\033[33m\033[01m $1 \033[0m"
+    echo -e "\033[33m\033[01m ${1:-} \033[0m"
 }
 
 
@@ -79,7 +85,7 @@ EOF
 
 cat > /etc/nginx/conf.d/default.conf<<-EOF
 server {
-    listen       80;
+    listen       ${NGINX_HTTP_PORT};
     server_name  $domain;
     root /etc/nginx/html;
     index index.php index.html index.htm;
@@ -104,12 +110,12 @@ EOF
 	
 cat > /etc/nginx/conf.d/default.conf<<-EOF
 server { 
-    listen       80;
+    listen       ${NGINX_HTTP_PORT};
     server_name  $domain;
     rewrite ^(.*)$  https://\$host\$1 permanent; 
 }
 server {
-    listen 443 ssl http2;
+    listen ${V2RAY_TLS_PORT} ssl http2;
     server_name $domain;
     root /etc/nginx/html;
     index index.php index.html;
@@ -127,7 +133,7 @@ server {
     #access_log .run/nginx-access.log combined;
     location /mypath {
         proxy_redirect off;
-        proxy_pass http://127.0.0.1:11234; 
+        proxy_pass http://127.0.0.1:${V2RAY_LOCAL_PORT};
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -143,13 +149,14 @@ EOF
 install_v2ray(){
     
     yum install -y wget
-    bash <(curl -L -s https://raw.githubusercontent.com/v2fly/fhs-install-v2ray/master/install-release.sh)  
+    curl -fsSL https://raw.githubusercontent.com/v2fly/fhs-install-v2ray/master/install-release.sh | bash
     cd /usr/local/etc/v2ray/
     rm -f config.json
     wget https://raw.githubusercontent.com/luyiming1016/ladderbackup/master/config.json
+    sed -i -E "0,/(\"port\"[[:space:]]*:[[:space:]]*)[0-9]+/s//\\1${V2RAY_LOCAL_PORT}/" config.json
     v2uuid=$(cat /proc/sys/kernel/random/uuid)
     sed -i -E "s/(\"id\"[[:space:]]*:[[:space:]]*\")[^\"]*(\")/\\1$v2uuid\\2/" config.json
-    newpath=$(cat /dev/urandom | head -1 | md5sum | head -c 4)
+    newpath=$(head -c 32 /dev/urandom | md5sum | cut -c1-4)
     sed -i "s/mypath/$newpath/;" config.json
     sed -i "s/mypath/$newpath/;" /etc/nginx/conf.d/default.conf
     cd /etc/nginx/html
@@ -177,7 +184,7 @@ cat > /usr/local/etc/v2ray/myconfig.json<<-EOF
 {
 ===========配置参数=============
 地址：${domain}
-端口：443
+端口：${V2RAY_TLS_PORT}
 uuid：${v2uuid}
 额外id：64
 加密方式：aes-128-gcm
@@ -194,7 +201,7 @@ green "安装已经完成"
 green 
 green "===========配置参数============"
 green "地址：${domain}"
-green "端口：443"
+    green "端口：${V2RAY_TLS_PORT}"
 green "uuid：${v2uuid}"
 green "额外id：64"
 green "加密方式：aes-128-gcm"
@@ -239,7 +246,7 @@ start_menu(){
     install_v2ray
     ;;
     2)
-    bash <(curl -L -s https://raw.githubusercontent.com/v2fly/fhs-install-v2ray/master/install-release.sh)  
+    curl -fsSL https://raw.githubusercontent.com/v2fly/fhs-install-v2ray/master/install-release.sh | bash
     ;;
     3)
     remove_v2ray 
