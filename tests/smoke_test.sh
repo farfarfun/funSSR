@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# scripts/setup.sh 冒烟测试：覆盖参数校验、dev/prod 的 start/run/status 语义、
-# 未安装服务、重复启动、陈旧 PID、失败退出码。全部使用 mock systemctl/init 脚本，
+# scripts/setup.sh 冒烟测试：覆盖参数校验、dev/prod 的生命周期与 status 语义、
+# 未安装服务、SysV/systemd 分发和失败退出码。全部使用 mock systemctl/init 脚本，
 # 不依赖真实 systemd 单元或 root 权限，可在任意 Linux 开发机上运行。
 #
 # 用法: bash tests/smoke_test.sh
@@ -41,6 +41,7 @@ code=$(run_setup); assert_eq "无参数 -> usage" 2 "$code"
 code=$(run_setup start badsvc dev); assert_eq "不支持的服务" 2 "$code"
 code=$(run_setup start ssr foo); assert_eq "环境必须是 dev/prod" 2 "$code"
 code=$(run_setup bogus ssr dev); assert_eq "不支持的 action" 2 "$code"
+code=$(run_setup run ssr dev); assert_eq "run 不作为生命周期入口" 2 "$code"
 code=$(run_setup start ssr dev extra); assert_eq "多余参数" 2 "$code"
 
 echo "=== 2. status 默认汇总全部服务与环境（均未安装） ==="
@@ -73,67 +74,25 @@ case "$1" in
 esac
 EOF
 chmod +x "$FUNSSR_INIT_DIR/ssr"
+cp "$FUNSSR_INIT_DIR/ssr" "$FUNSSR_INIT_DIR/ssrmu"
 code=$(run_setup start ssr dev); assert_eq "dev 已安装 start" 0 "$code"
 grep -q "mock-init ssr start" "$workdir/out.log" || { echo "FAIL - 未透传到 mock init start" >&2; fail=$((fail + 1)); }
 code=$(run_setup stop ssr dev); assert_eq "dev 已安装 stop" 0 "$code"
 code=$(run_setup restart ssr dev); assert_eq "dev 已安装 restart" 0 "$code"
 code=$(run_setup status ssr dev); assert_eq "dev status 透传非零退出码" 3 "$code"
 
-echo "=== 5. dev run：真正前台运行占位脚本，写入并校验 pid_file ==="
-cat >"$workdir/placeholder_ssr.sh" <<'EOF'
-#!/usr/bin/env bash
-echo "placeholder service running pid=$$"
-sleep 3
-EOF
-chmod +x "$workdir/placeholder_ssr.sh"
-bash "$repo_root/scripts/services/service.sh" ssr ssr "$workdir/placeholder_ssr.sh" run dev \
-	>"$workdir/run.log" 2>&1 &
-run_pid=$!
-sleep 1
-pid_file="$FUNSSR_RUN_DIR/ssr.pid"
-if [[ -r "$pid_file" ]]; then
-	written_pid=$(cat "$pid_file")
-	if kill -0 "$written_pid" 2>/dev/null; then
-		echo "ok   - pid_file 写入且进程存活 (PID $written_pid)"
-		pass=$((pass + 1))
-	else
-		echo "FAIL - pid_file 中的 PID 并未存活" >&2
-		fail=$((fail + 1))
-	fi
-else
-	echo "FAIL - run dev 未写入 pid_file" >&2
-	fail=$((fail + 1))
-fi
+echo "=== 5. 直接调用服务分发器时也拒绝 run ==="
+run_code=$(set +e; bash "$repo_root/scripts/services/service.sh" ssr ssr run dev >"$workdir/run.log" 2>&1; echo $?; set -e)
+assert_eq "service.sh run 非零退出" 2 "$run_code"
 
-echo "--- 5b. 重复 run 应被拒绝（陈旧/活动 PID 与 flock 双重保护） ---"
-dup_code=$(set +e; bash "$repo_root/scripts/services/service.sh" ssr ssr "$workdir/placeholder_ssr.sh" run dev >"$workdir/dup.log" 2>&1; echo $?; set -e)
-assert_eq "占用期间重复 run dev 应非零退出" 1 "$dup_code"
-
-wait "$run_pid"
-echo "--- 5c. 进程退出后陈旧 PID 应被清理并允许重新 run ---"
-timeout 2 bash "$repo_root/scripts/services/service.sh" ssr ssr "$workdir/placeholder_ssr.sh" run dev \
-	>"$workdir/rerun.log" 2>&1 &
-rerun_pid=$!
-sleep 0.5
-new_pid=$(cat "$pid_file" 2>/dev/null || echo "")
-if [[ -n "$new_pid" && "$new_pid" != "$written_pid" ]]; then
-	echo "ok   - 陈旧 PID 清理后重新写入新 PID"
-	pass=$((pass + 1))
-else
-	echo "FAIL - 陈旧 PID 未被正确替换 (旧=$written_pid 新=$new_pid)" >&2
-	fail=$((fail + 1))
-fi
-kill "$rerun_pid" 2>/dev/null || true
-wait "$rerun_pid" 2>/dev/null || true
-
-echo "=== 6. prod：用假 systemctl 模拟已安装/未安装 ==="
+echo "=== 6. prod：SysV 服务优先 init，systemd 服务走 systemctl ==="
 fake_bin="$workdir/bin"
 mkdir -p "$fake_bin"
 cat >"$fake_bin/systemctl" <<'EOF'
 #!/usr/bin/env bash
 case "$1" in
 	cat)
-		[[ "$2" == "ssr" ]] && exit 0 || exit 1
+		[[ "$2" == "v2ray" || "$2" == "trojan" ]] && exit 0 || exit 1
 		;;
 	start|stop|restart)
 		echo "mock-systemctl $1 $2"
@@ -149,12 +108,19 @@ EOF
 chmod +x "$fake_bin/systemctl"
 export PATH="$fake_bin:$PATH"
 
-code=$(run_setup start ssr prod); assert_eq "prod 已安装 start" 0 "$code"
-code=$(run_setup run ssr prod); assert_eq "prod run（仅已安装时执行）" 0 "$code"
-code=$(run_setup start ssrmu prod); assert_eq "prod 未安装 start 报错" 1 "$code"
-code=$(run_setup run ssrmu prod); assert_eq "prod 未安装 run 报错（不得回退到源码）" 1 "$code"
-code=$(run_setup status ssr prod); assert_eq "prod 已安装 status 非交互透传" 0 "$code"
-grep -q "mock-systemctl status" "$workdir/out.log" || { echo "FAIL - prod status 未使用 --no-pager 非交互查询" >&2; fail=$((fail + 1)); }
+code=$(run_setup start ssr prod); assert_eq "prod SysV 已安装 start" 0 "$code"
+grep -q "mock-init ssr start" "$workdir/out.log" || { echo "FAIL - prod 未透传到 SysV init start" >&2; fail=$((fail + 1)); }
+code=$(run_setup stop ssrmu prod); assert_eq "prod SSRmu SysV 已安装 stop" 0 "$code"
+code=$(run_setup run ssr prod); assert_eq "prod run 被拒绝" 2 "$code"
+code=$(run_setup start v2ray prod); assert_eq "prod systemd 已安装 start" 0 "$code"
+grep -q "mock-systemctl start v2ray" "$workdir/out.log" || { echo "FAIL - prod 未透传到 systemctl start" >&2; fail=$((fail + 1)); }
+code=$(run_setup restart trojan prod); assert_eq "prod Trojan systemd 已安装 restart" 0 "$code"
+code=$(run_setup status ssr prod); assert_eq "prod SysV status 透传非零退出码" 3 "$code"
+code=$(run_setup status ssrmu prod); assert_eq "prod SSRmu SysV status 透传非零退出码" 3 "$code"
+code=$(run_setup status v2ray prod); assert_eq "prod V2Ray systemd status" 0 "$code"
+code=$(run_setup status trojan prod); assert_eq "prod Trojan systemd status" 0 "$code"
+rm -f "$FUNSSR_INIT_DIR/ssrmu"
+code=$(run_setup start ssrmu prod); assert_eq "prod 未安装服务 start 报错" 1 "$code"
 
 echo
 echo "=== 汇总: $pass 通过, $fail 失败 ==="

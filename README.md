@@ -46,20 +46,18 @@ yum -y install wget
 统一入口按 `action service environment` 指定环境：
 
 ```bash
-scripts/setup.sh run ssrmu dev       # 前台运行仓库安装/管理脚本（交互式菜单）
-scripts/setup.sh start ssrmu prod    # 启动已安装的生产服务（systemctl start，后台）
-scripts/setup.sh run ssrmu prod      # 仅校验已安装后 systemctl start；已知限制见下
+scripts/setup.sh start ssrmu dev     # 启动已安装的开发 init 服务
+scripts/setup.sh start ssrmu prod    # 启动已安装的生产服务（SysV 或 systemd）
 scripts/setup.sh status ssrmu prod   # 单一目标：原样返回底层真实退出码
 scripts/setup.sh status              # 非交互汇总全部服务和环境，退出码归一为 0/1
 ```
 
-已知限制：`run prod` 目前与 `start prod` 效果相同（仍是 `systemctl start`，不是真正前台
-附着主进程），因为 `ssr`/`ssrmu` 走 SysV `/etc/init.d` 而 `trojan`/`v2ray` 走 systemd，
-通用地从已安装单元反推出可安全前台重放的启动命令（含环境变量、工作目录等）成本和风险
-都较高，暂缓实现，详见 todo-list#785。
+`run` 不属于统一生命周期入口：当前安装器不能安全地反推出所有已安装服务的前台主进程命令，
+因此会明确拒绝，而不会将后台 `start` 伪装成前台运行。生产环境会优先使用已安装的
+`/etc/init.d/<service>`；没有 SysV 脚本时才使用 systemd 单元。
 
 服务日志和其他运行时文件放在仓库 `.run/` 目录；可通过 `FUNSSR_RUN_DIR` 指定独立目录；
-`dev` 环境下 `/etc/init.d` 的查找路径可通过 `FUNSSR_INIT_DIR` 覆盖（供测试用 mock 注入）。
+`/etc/init.d` 的查找路径可通过 `FUNSSR_INIT_DIR` 覆盖（供测试用 mock 注入）。
 
 ## 测试
 
@@ -67,8 +65,8 @@ scripts/setup.sh status              # 非交互汇总全部服务和环境，�
 bash tests/smoke_test.sh
 ```
 
-冒烟测试覆盖参数校验、`status` 默认汇总与单目标透传退出码、dev 环境 start/stop/restart/run
-（含 PID 文件写入与陈旧 PID 清理）、prod 环境已安装/未安装分支；全部通过 mock 的
+冒烟测试覆盖参数校验、`status` 默认汇总与单目标透传退出码、dev 环境 start/stop/restart、
+prod 环境的 SysV/systemd 已安装与未安装分支；全部通过 mock 的
 `systemctl`/`init.d` 脚本执行，不依赖真实服务或 root 权限。
 
 ## 关于 farfarfun
