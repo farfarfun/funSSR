@@ -12,13 +12,14 @@ export PATH
 
 sh_ver="2.0.38"
 filepath=$(cd "$(dirname "$0")"; pwd)
+repo_dir=$(cd "${filepath}/../.." && pwd)
 file=$(echo -e "${filepath}"|awk -F "$0" '{print $1}')
 ssr_folder="/usr/local/shadowsocksr"
 ssr_ss_file="${ssr_folder}/shadowsocks"
 config_file="${ssr_folder}/config.json"
 config_folder="/etc/shadowsocksr"
 config_user_file="${config_folder}/user-config.json"
-runtime_dir="${FUNSSR_RUN_DIR:-${filepath}/.run}"
+runtime_dir="${FUNSSR_RUN_DIR:-${repo_dir}/.run}"
 mkdir -p "${runtime_dir}"
 ssr_log_file="${runtime_dir}/ssr.log"
 ssr_pid_file="${runtime_dir}/ssr.pid"

@@ -12,13 +12,14 @@ export PATH
 
 sh_ver="1.0.26"
 filepath=$(cd "$(dirname "$0")"; pwd)
+repo_dir=$(cd "${filepath}/../.." && pwd)
 file=$(echo -e "${filepath}"|awk -F "$0" '{print $1}')
 ssr_folder="/usr/local/shadowsocksr"
 config_file="${ssr_folder}/config.json"
 config_user_file="${ssr_folder}/user-config.json"
 config_user_api_file="${ssr_folder}/userapiconfig.py"
 config_user_mudb_file="${ssr_folder}/mudb.json"
-runtime_dir="${FUNSSR_RUN_DIR:-${filepath}/.run}"
+runtime_dir="${FUNSSR_RUN_DIR:-${repo_dir}/.run}"
 mkdir -p "${runtime_dir}"
 ssr_log_file="${runtime_dir}/ssrmu.log"
 ssr_pid_file="${runtime_dir}/ssrmu.pid"

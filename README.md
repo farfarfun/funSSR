@@ -23,6 +23,25 @@ yum -y install wget
 
 最后会出现配置完成的画面，复制好提示出现的 ssr 链接复制保存在剪贴板里，之后就要安装 ssr 客户端了。
 
+## 遗留安装器
+
+`darkssr/server/` 下的脚本是历史遗留的交互式安装/管理器，不是
+`scripts/setup.sh` 的前台服务进程。请只在隔离的 VPS 上以 root 运行，并先审阅脚本；它们会
+安装软件、修改系统配置和服务单元。`scripts/setup.sh` 用于已安装服务的
+`start`、`stop`、`restart`、`status` 生命周期操作；其 `run ... dev` 仅会打开对应的
+交互式管理菜单，不会以前台模式启动守护进程。
+
+| 入口 | 用途 | 支持系统 | 调用方式 |
+| --- | --- | --- | --- |
+| `ssr.sh` | ShadowsocksR 单用户服务的安装和管理 | CentOS 6+、Debian 6+、Ubuntu 14+ | `bash darkssr/server/ssr.sh` |
+| `ssrmu.sh` | ShadowsocksR mudbjson 多用户服务的安装和管理 | CentOS 6+、Debian 6+、Ubuntu 14+ | `bash darkssr/server/ssrmu.sh` |
+| `tcp.sh` | BBR/加速内核安装与管理 | CentOS 6/7、Debian 8/9、Ubuntu 16+ | `bash darkssr/server/tcp.sh` |
+| `trojan_centos7.sh` | Trojan 服务安装 | CentOS 7 | `bash darkssr/server/trojan_centos7.sh` |
+| `v2ray_ws_tls.sh` | V2Ray WebSocket/TLS 服务安装 | CentOS 7 | `bash darkssr/server/v2ray_ws_tls.sh` |
+
+这些安装器的依赖、配置输出和卸载选项由各自的交互菜单显示。它们包含历史第三方代码，
+不保证适配现代发行版；生产使用前应在目标系统上验证，并保留安装输出中的配置和凭据。
+
 # 安装 SSR-客户端
 
 客户端安装包不再直接提交到本仓库。请从对应上游项目的正式发布页下载并校验发布者提供的校验值；本项目只维护服务端脚本。
