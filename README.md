@@ -28,8 +28,7 @@ yum -y install wget
 `darkssr/server/` 下的脚本是历史遗留的交互式安装/管理器，不是
 `scripts/setup.sh` 的前台服务进程。请只在隔离的 VPS 上以 root 运行，并先审阅脚本；它们会
 安装软件、修改系统配置和服务单元。`scripts/setup.sh` 用于已安装服务的
-`start`、`stop`、`restart`、`status` 生命周期操作；其 `run ... dev` 仅会打开对应的
-交互式管理菜单，不会以前台模式启动守护进程。
+`start`、`stop`、`restart`、`status`、`run` 生命周期操作。
 
 | 入口 | 用途 | 支持系统 | 调用方式 |
 | --- | --- | --- | --- |
@@ -67,16 +66,19 @@ yum -y install wget
 ```bash
 scripts/setup.sh start ssrmu dev     # 启动已安装的开发 init 服务
 scripts/setup.sh start ssrmu prod    # 启动已安装的生产服务（SysV 或 systemd）
+scripts/setup.sh run ssrmu prod      # 以前台方式运行已安装服务
 scripts/setup.sh status ssrmu prod   # 单一目标：原样返回底层真实退出码
 scripts/setup.sh status              # 非交互汇总全部服务和环境，退出码归一为 0/1
 ```
 
-`run` 不属于统一生命周期入口：当前安装器不能安全地反推出所有已安装服务的前台主进程命令，
-因此会明确拒绝，而不会将后台 `start` 伪装成前台运行。生产环境会优先使用已安装的
-`/etc/init.d/<service>`；没有 SysV 脚本时才使用 systemd 单元。
+`run` 会 `exec` 已安装服务的明确前台命令，不会将后台 `start` 伪装成前台运行。缺少服务
+二进制或配置时会明确报错；生产环境不会下载或临时安装软件。`start`、`stop`、`restart`
+在生产环境优先使用已安装的 `/etc/init.d/<service>`；没有 SysV 脚本时才使用 systemd 单元。
 
 服务日志和其他运行时文件放在仓库 `.run/` 目录；可通过 `FUNSSR_RUN_DIR` 指定独立目录；
 `/etc/init.d` 的查找路径可通过 `FUNSSR_INIT_DIR` 覆盖（供测试用 mock 注入）。
+V2Ray 样例配置使用绝对的 `/var/lib/funSSR/.run/` 日志目录；部署前需创建该目录并确保服务
+账户可写。
 
 ## 测试
 
@@ -84,7 +86,7 @@ scripts/setup.sh status              # 非交互汇总全部服务和环境，�
 bash tests/smoke_test.sh
 ```
 
-冒烟测试覆盖参数校验、`status` 默认汇总与单目标透传退出码、dev 环境 start/stop/restart、
+冒烟测试覆盖参数校验、`run` 前台命令分发、`status` 默认汇总与单目标透传退出码、dev 环境 start/stop/restart、
 prod 环境的 SysV/systemd 已安装与未安装分支；全部通过 mock 的
 `systemctl`/`init.d` 脚本执行，不依赖真实服务或 root 权限。
 

@@ -41,7 +41,7 @@ code=$(run_setup); assert_eq "无参数 -> usage" 2 "$code"
 code=$(run_setup start badsvc dev); assert_eq "不支持的服务" 2 "$code"
 code=$(run_setup start ssr foo); assert_eq "环境必须是 dev/prod" 2 "$code"
 code=$(run_setup bogus ssr dev); assert_eq "不支持的 action" 2 "$code"
-code=$(run_setup run ssr dev); assert_eq "run 不作为生命周期入口" 2 "$code"
+code=$(run_setup run ssr dev); assert_eq "run 缺少已安装服务时失败" 1 "$code"
 code=$(run_setup start ssr dev extra); assert_eq "多余参数" 2 "$code"
 
 echo "=== 2. status 默认汇总全部服务与环境（均未安装） ==="
@@ -81,11 +81,10 @@ code=$(run_setup stop ssr dev); assert_eq "dev 已安装 stop" 0 "$code"
 code=$(run_setup restart ssr dev); assert_eq "dev 已安装 restart" 0 "$code"
 code=$(run_setup status ssr dev); assert_eq "dev status 透传非零退出码" 3 "$code"
 
-echo "=== 5. 直接调用服务分发器时也拒绝 run ==="
+echo "=== 5. 直接调用服务分发器时，缺少已安装服务会失败 ==="
 run_code=$(set +e; bash "$repo_root/scripts/services/service.sh" ssr ssr run dev >"$workdir/run.log" 2>&1; echo $?; set -e)
-assert_eq "service.sh run 非零退出" 2 "$run_code"
+assert_eq "service.sh run 非零退出" 1 "$run_code"
 
-echo "=== 6. prod：SysV 服务优先 init，systemd 服务走 systemctl ==="
 fake_bin="$workdir/bin"
 mkdir -p "$fake_bin"
 cat >"$fake_bin/systemctl" <<'EOF'
@@ -106,12 +105,46 @@ case "$1" in
 esac
 EOF
 chmod +x "$fake_bin/systemctl"
+cat >"$fake_bin/python" <<'EOF'
+#!/usr/bin/env bash
+echo "mock-python $*"
+EOF
+chmod +x "$fake_bin/python"
 export PATH="$fake_bin:$PATH"
 
+echo "=== 6. run：以前台命令执行已安装服务 ==="
+mkdir -p "$workdir/ssr/shadowsocks" "$workdir/ssrmu"
+touch "$workdir/ssr/shadowsocks/server.py" "$workdir/ssr-config.json" "$workdir/ssrmu/server.py"
+cat >"$workdir/trojan" <<'EOF'
+#!/usr/bin/env bash
+echo "mock-trojan $*"
+EOF
+cat >"$workdir/v2ray" <<'EOF'
+#!/usr/bin/env bash
+echo "mock-v2ray $*"
+EOF
+chmod +x "$workdir/trojan" "$workdir/v2ray"
+touch "$workdir/trojan.conf" "$workdir/v2ray.json"
+export FUNSSR_SSR_DIR="$workdir/ssr"
+export FUNSSR_SSR_CONFIG="$workdir/ssr-config.json"
+export FUNSSR_SSRMU_DIR="$workdir/ssrmu"
+export FUNSSR_TROJAN_BIN="$workdir/trojan"
+export FUNSSR_TROJAN_CONFIG="$workdir/trojan.conf"
+export FUNSSR_V2RAY_BIN="$workdir/v2ray"
+export FUNSSR_V2RAY_CONFIG="$workdir/v2ray.json"
+code=$(run_setup run ssr dev); assert_eq "ssr run 前台执行" 0 "$code"
+grep -q "mock-python .*server.py -c .*ssr-config.json a" "$workdir/out.log" || { echo "FAIL - ssr run 未执行前台命令" >&2; fail=$((fail + 1)); }
+code=$(run_setup run ssrmu prod); assert_eq "ssrmu run 前台执行" 0 "$code"
+code=$(run_setup run trojan prod); assert_eq "trojan run 前台执行" 0 "$code"
+grep -q "mock-trojan -c .*trojan.conf" "$workdir/out.log" || { echo "FAIL - trojan run 未执行前台命令" >&2; fail=$((fail + 1)); }
+code=$(run_setup run v2ray prod); assert_eq "v2ray run 前台执行" 0 "$code"
+grep -q "mock-v2ray run -config .*v2ray.json" "$workdir/out.log" || { echo "FAIL - v2ray run 未执行前台命令" >&2; fail=$((fail + 1)); }
+
+echo "=== 7. prod：SysV 服务优先 init，systemd 服务走 systemctl ==="
 code=$(run_setup start ssr prod); assert_eq "prod SysV 已安装 start" 0 "$code"
 grep -q "mock-init ssr start" "$workdir/out.log" || { echo "FAIL - prod 未透传到 SysV init start" >&2; fail=$((fail + 1)); }
 code=$(run_setup stop ssrmu prod); assert_eq "prod SSRmu SysV 已安装 stop" 0 "$code"
-code=$(run_setup run ssr prod); assert_eq "prod run 被拒绝" 2 "$code"
+code=$(run_setup run ssr prod); assert_eq "prod run 前台执行" 0 "$code"
 code=$(run_setup start v2ray prod); assert_eq "prod systemd 已安装 start" 0 "$code"
 grep -q "mock-systemctl start v2ray" "$workdir/out.log" || { echo "FAIL - prod 未透传到 systemctl start" >&2; fail=$((fail + 1)); }
 code=$(run_setup restart trojan prod); assert_eq "prod Trojan systemd 已安装 restart" 0 "$code"

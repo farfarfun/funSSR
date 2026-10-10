@@ -180,7 +180,6 @@ After=network.target
    
 [Service]  
 Type=simple  
-PIDFile=.run/trojan.pid
 ExecStart=/usr/src/trojan/trojan -c "/usr/src/trojan/server.conf"  
 ExecReload=  
 ExecStop=/usr/src/trojan/trojan  
