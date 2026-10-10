@@ -1,7 +1,7 @@
 {
   "log" : {
-    "access": ".run/v2ray-access.log",
-    "error": ".run/v2ray-error.log",
+    "access": "/var/lib/funSSR/.run/v2ray-access.log",
+    "error": "/var/lib/funSSR/.run/v2ray-error.log",
     "loglevel": "warning"
   },
   "inbound": {
